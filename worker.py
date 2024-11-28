@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import sys
 import time  # Import time module for tracking training duration
+import subprocess  # Import subprocess for running shell commands
 
 # Dataset class definition
 class TimeSeriesDataset:
@@ -59,17 +60,32 @@ def evaluate_and_save_results(model, X_test, y_test, worker_id, training_time):
         'MSE': mse,
         'training_time_seconds': training_time
     }
-    with open(f'evaluation_results_worker_{worker_id}.json', 'w') as f:
+    result_file = f'evaluation_results_worker_{worker_id}.json'
+    with open(result_file, 'w') as f:
         json.dump(results, f)
-    print(f'Worker {worker_id} evaluation results saved locally as evaluation_results_worker_{worker_id}.json')
+    print(f'Worker {worker_id} evaluation results saved locally as {result_file}')
+
+    return result_file  # Return the result file name for sending
+
+# Function to send results to the master instance
+def send_results_to_master(result_file, master_ip, master_user):
+    try:
+        # Construct the scp command
+        scp_command = ["scp", result_file, f"{master_user}@{master_ip}:~/test/"]
+        subprocess.run(scp_command, check=True)
+        print(f"Results successfully sent to master instance at {master_ip}.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error sending results to master instance: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         print("Usage: python3 worker.py {worker_id} {partition_file}")
         sys.exit(1)
 
     worker_id = int(sys.argv[1])
     partition_file = sys.argv[2]
+    master_ip = "44.213.147.149"
+    master_user = "ubuntu"
 
     # Load partitioned data
     ticker_data = pd.read_json(partition_file)
@@ -95,4 +111,7 @@ if __name__ == "__main__":
     training_time = end_time - start_time
 
     # Evaluate models after training
-    evaluate_and_save_results(model, X_test, y_test, worker_id, training_time)
+    result_file = evaluate_and_save_results(model, X_test, y_test, worker_id, training_time)
+
+    # Send results to the master instance
+    send_results_to_master(result_file, master_ip, master_user)
