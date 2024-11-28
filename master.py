@@ -84,7 +84,18 @@ if __name__ == "__main__":
             print(f"Partition file {partition_file} created successfully.")
         else:
             print(f"Error: Partition file {partition_file} not found.")
+            continue  # Skip starting the worker if the file doesn't exist
         
+        # Copy the partition file to the worker instance using SCP
+        scp_command = f"scp -i hyunju.pem {partition_file} ubuntu@{worker_ips[worker_id]}:~/test/"
+        print(f"Copying {partition_file} to worker {worker_id} with command: {scp_command}")
+        
+        # Execute the SCP command
+        scp_process = subprocess.run(scp_command, shell=True)
+        if scp_process.returncode != 0:
+            print(f"Error: Failed to copy {partition_file} to worker {worker_id}.")
+            continue  # Skip starting the worker if the copy fails
+
         # Use SSH to start the worker process on the remote instance
         ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} {partition_file}'"
         print(f"Starting worker {worker_id} with command: {ssh_command}")

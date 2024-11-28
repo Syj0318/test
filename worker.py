@@ -8,6 +8,7 @@ import sys
 import time
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+import subprocess
 
 # Function for data preprocessing
 def preprocess_data(ticker_data):
@@ -81,7 +82,19 @@ if __name__ == "__main__":
 
     # Save results to a JSON file
     results = {'Worker ID': worker_id, 'MSE': mse, 'Training Time': training_time}
-    with open(f'results_worker_{worker_id}.json', 'w') as f:
+    result_file = f'results_worker_{worker_id}.json'
+    with open(result_file, 'w') as f:
         json.dump(results, f)
 
-    print(f'Worker {worker_id} finished processing and saved results.')
+    print(f'Worker {worker_id} finished processing and saved results to {result_file}.')
+
+    # Send results back to the master instance using SCP
+    scp_command = f"scp -i ~/.ssh/mykey {result_file} ubuntu@44.223.78.166:~/test/"
+    print(f"Sending results to master with command: {scp_command}")
+    
+    # Execute the SCP command
+    scp_process = subprocess.run(scp_command, shell=True)
+    if scp_process.returncode != 0:
+        print(f"Error: Failed to send {result_file} to the master instance.")
+    else:
+        print(f"Successfully sent {result_file} to the master instance.")
