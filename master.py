@@ -86,7 +86,7 @@ if __name__ == "__main__":
             print(f"Error: Partition file {partition_file} not found.")
         
         # Use SSH to start the worker process on the remote instance
-        ssh_command = f"ssh -i hyunju.pem username@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} {partition_file}'"
+        ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} {partition_file}'"
         print(f"Starting worker {worker_id} with command: {ssh_command}")
 
         # Start the worker process and store the process object
