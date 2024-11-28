@@ -5,7 +5,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import json
 import tensorflow as tf
-import time  # 시간 측정을 위한 모듈 추가
 
 # Dataset class definition
 class TimeSeriesDataset:
@@ -87,12 +86,12 @@ def evaluate_model(model, X_test, y_test):
     return mse
 
 # Function to evaluate and save results locally
-def evaluate_and_save_results(model, X_test, y_test, training_time):
+def evaluate_and_save_results(model, X_test, y_test):
     mse = evaluate_model(model, X_test, y_test)
-    print(f"Evaluation -> MSE: {mse:.4f}, Training Time: {training_time:.2f} seconds")
+    print(f"Evaluation -> MSE: {mse:.4f}")
 
     # Save evaluation results to a local file
-    results = {'MSE': mse, 'Training Time': training_time}
+    results = {'MSE': mse}
     with open('evaluation_results.json', 'w') as f:
         json.dump(results, f)
     print(f'Evaluation results saved locally as evaluation_results.json')
@@ -109,20 +108,9 @@ if __name__ == "__main__":
     X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], X_train.shape[2]))
     X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], X_test.shape[2]))
 
-    # Use MirroredStrategy for distributed training
-    strategy = tf.distribute.MirroredStrategy()
-
-    with strategy.scope():
-        # Create and train the model
-        model = create_model((X_train.shape[1], X_train.shape[2]))
-        
-        # Measure training time
-        start_time = time.time()
-        model.fit(X_train, y_train, epochs=10, batch_size=32)
-        end_time = time.time()
-        
-        # Calculate training time
-        training_time = end_time - start_time
+    # Create and train the model
+    model = create_model((X_train.shape[1], X_train.shape[2]))
+    model.fit(X_train, y_train, epochs=10, batch_size=32)
 
     # Evaluate models after training
-    evaluate_and_save_results(model, X_test, y_test, training_time)
+    evaluate_and_save_results(model, X_test, y_test)
