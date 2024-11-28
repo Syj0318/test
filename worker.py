@@ -12,7 +12,7 @@ import subprocess
 
 # Function for data preprocessing
 def preprocess_data(ticker_data):
-    relevant_data = ticker_data[['Adj Close', 'Close', 'High', 'Low', 'Open', 'Volume']]
+    relevant_data = ticker_data[['Adj Close', 'Close', 'High', 'Low', 'Open', 'Volume']].astype('float32')
     scaler = MinMaxScaler()
     normalized_data = scaler.fit_transform(relevant_data)
 
