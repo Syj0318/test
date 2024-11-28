@@ -4,6 +4,11 @@ import subprocess
 
 # Install pymysql and boto3 if necessary
 subprocess.check_call([sys.executable, "-m", "pip", "install", "pymysql"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "pymysql"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113"])  # CUDA 버전에 맞는 PyTorch 설치
+subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "numpy"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn"])
 
 import pandas as pd
 import numpy as np
