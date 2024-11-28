@@ -68,15 +68,18 @@ def evaluate_and_save_results(model, X_test, y_test, worker_id, training_time):
     return result_file  # Return the result file name for sending
 
 # Function to send results to the master instance
-def send_results_to_master(result_file, master_ip, master_user):
+def send_results_to_master(result_file, master_ip):
     try:
-        # Construct the scp command
-        scp_command = f"scp -i COMP4651.pem {result_file} ubuntu@{master_ip}:~/test/"
+        # # Construct the scp command
+        # scp_command = f"scp -i COMP4651.pem {result_file} ubuntu@{master_ip}:~/test/"
         
-        print(f"Copying {result_file} to master with command: {scp_command}")
+        # print(f"Copying {result_file} to master with command: {scp_command}")
         
-        # Execute the SCP command
-        scp_process = subprocess.run(scp_command, shell=True)
+        # # Execute the SCP command
+        # scp_process = subprocess.run(scp_command, shell=True)
+
+        scp_command = ["scp -i COMP4651.pem", result_file, f"ubuntu@{master_ip}:/path/to/destination/"]
+        subprocess.run(scp_command, check=True)
         
             
         print(f"Results successfully sent to master instance at {master_ip}.")
@@ -120,4 +123,4 @@ if __name__ == "__main__":
     result_file = evaluate_and_save_results(model, X_test, y_test, worker_id, training_time)
 
     # Send results to the master instance
-    send_results_to_master(result_file, master_ip, master_user)
+    send_results_to_master(result_file, master_ip)
