@@ -1,19 +1,8 @@
 import pandas as pd
-import numpy as np
 import pymysql
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 import json
-import tensorflow as tf
-
-# Dataset class definition
-class TimeSeriesDataset:
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def get_data(self):
-        return self.X, self.y
+import os
+import subprocess
 
 # Function to fetch data from the database
 def fetch_data(selected_ticker):
@@ -53,64 +42,43 @@ def fetch_data(selected_ticker):
     finally:
         connection.close()
 
-# Function for data preprocessing
-def preprocess_data(ticker_data):
-    relevant_data = ticker_data[['Adj Close', 'Close', 'High', 'Low', 'Open', 'Volume']]
-    scaler = MinMaxScaler()
-    normalized_data = scaler.fit_transform(relevant_data)
-
-    sequence_length = 10
-
-    def create_sequences(data, sequence_length):
-        X, y = [], []
-        for i in range(len(data) - sequence_length):
-            X.append(data[i:i + sequence_length, :])
-            y.append(data[i + sequence_length, 0])  # Predict Adj Close
-        return np.array(X), np.array(y)
-
-    X, y = create_sequences(normalized_data, sequence_length)
-    return np.array(X), np.array(y)
-
-# Function to create and compile the LSTM model
-def create_model(input_shape):
-    model = tf.keras.Sequential([
-        tf.keras.layers.LSTM(32, activation='relu', input_shape=input_shape),
-        tf.keras.layers.Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    return model
-
-# Function to evaluate the model
-def evaluate_model(model, X_test, y_test):
-    mse = model.evaluate(X_test, y_test, verbose=0)
-    return mse
-
-# Function to evaluate and save results locally
-def evaluate_and_save_results(model, X_test, y_test):
-    mse = evaluate_model(model, X_test, y_test)
-    print(f"Evaluation -> MSE: {mse:.4f}")
-
-    # Save evaluation results to a local file
-    results = {'MSE': mse}
-    with open('evaluation_results.json', 'w') as f:
-        json.dump(results, f)
-    print(f'Evaluation results saved locally as evaluation_results.json')
+# Function to partition data for workers
+def partition_data(ticker_data, num_workers):
+    partition_size = len(ticker_data) // num_workers
+    partitions = []
+    for i in range(num_workers):
+        start_index = i * partition_size
+        end_index = (i + 1) * partition_size if i != num_workers - 1 else len(ticker_data)
+        partitions.append(ticker_data[start_index:end_index])
+    return partitions
 
 if __name__ == "__main__":
     selected_ticker = "AAPL"  # Change to desired ticker symbol
     ticker_data = fetch_data(selected_ticker)
 
-    # Data preprocessing
-    X, y = preprocess_data(ticker_data)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Number of worker instances
+    num_workers = 2  # Set this according to your setup
 
-    # Reshape data for LSTM
-    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], X_train.shape[2]))
-    X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], X_test.shape[2]))
+    # Worker instance IP addresses
+    worker_ips = [
+        "34.237.138.176",
+        "54.236.40.31"
+    ]
 
-    # Create and train the model
-    model = create_model((X_train.shape[1], X_train.shape[2]))
-    model.fit(X_train, y_train, epochs=10, batch_size=32)
+    # Partition data for each worker
+    partitions = partition_data(ticker_data, num_workers)
 
-    # Evaluate models after training
-    evaluate_and_save_results(model, X_test, y_test)
+    # Start worker instances
+    for worker_id in range(num_workers):
+        # Save partition to a temporary file
+        partition_file = f'worker_data_{worker_id}.json'
+        partitions[worker_id].to_json(partition_file, orient='records')
+
+        # Use SSH to start the worker process on the remote instance
+        ssh_command = f"ssh -i hyunju.pem username@{worker_ips[worker_id]} 'python3 ~/test/worker.py'"
+        
+        # Execute the SSH command
+        subprocess.Popen(ssh_command, shell=True)
+
+    # Wait for workers to finish (you might implement a more robust wait mechanism)
+    print("Workers have been started. Check output files for results.")
