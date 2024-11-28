@@ -5,7 +5,7 @@ import numpy as np
 import json
 import tensorflow as tf
 import sys
-import time
+#import time
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import subprocess
@@ -70,18 +70,18 @@ if __name__ == "__main__":
         model = create_model((X_train.shape[1], X_train.shape[2]))
 
         # Measure training time
-        start_time = time.time()
+        #start_time = time.time()
         model.fit(X_train, y_train, epochs=10, batch_size=32)
-        end_time = time.time()
+        #end_time = time.time()
 
         # Calculate training time
-        training_time = end_time - start_time
+        #training_time = end_time - start_time
 
     # Evaluate the model
     mse = evaluate_model(model, X_test, y_test)
 
     # Save results to a JSON file
-    results = {'Worker ID': worker_id, 'MSE': mse, 'Training Time': training_time}
+    results = {'Worker ID': worker_id, 'MSE': mse} #,'Training Time': training_time}
     result_file = f'results_worker_{worker_id}.json'
     with open(result_file, 'w') as f:
         json.dump(results, f)
