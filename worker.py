@@ -1,11 +1,9 @@
-# worker.py
-
 import pandas as pd
 import numpy as np
 import json
 import tensorflow as tf
 import sys
-#import time
+import time  # Import time module for measuring training duration
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import subprocess
@@ -51,8 +49,18 @@ if __name__ == "__main__":
     worker_id = int(sys.argv[1])
     partition_file = sys.argv[2]
 
+    print("workingllllllllllllllllllllllllllllllllllllllllllll")
+    print(partition_file)
+
     # Load the worker data
-    ticker_data = pd.read_json(partition_file)
+    try:
+        ticker_data = pd.read_json(partition_file)
+    except ValueError as e:
+        print(f"Error reading JSON file {partition_file}: {e}")
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"File {partition_file} not found.")
+        sys.exit(1)
 
     # Data preprocessing
     X, y = preprocess_data(ticker_data)
@@ -66,22 +74,22 @@ if __name__ == "__main__":
     strategy = tf.distribute.MirroredStrategy()
 
     with strategy.scope():
-        # Create and train the model
+        # Create the model
         model = create_model((X_train.shape[1], X_train.shape[2]))
 
         # Measure training time
-        #start_time = time.time()
+        start_time = time.time()  # Start time
         model.fit(X_train, y_train, epochs=10, batch_size=32)
-        #end_time = time.time()
+        end_time = time.time()  # End time
 
-        # Calculate training time
-        #training_time = end_time - start_time
+    # Calculate training time
+    training_time = end_time - start_time
 
     # Evaluate the model
     mse = evaluate_model(model, X_test, y_test)
 
     # Save results to a JSON file
-    results = {'Worker ID': worker_id, 'MSE': mse} #,'Training Time': training_time}
+    results = {'Worker ID': worker_id, 'MSE': mse, 'Training Time': training_time}
     result_file = f'results_worker_{worker_id}.json'
     with open(result_file, 'w') as f:
         json.dump(results, f)
@@ -89,7 +97,7 @@ if __name__ == "__main__":
     print(f'Worker {worker_id} finished processing and saved results to {result_file}.')
 
     # Send results back to the master instance using SCP
-    scp_command = f"scp -i ~/.ssh/mykey {result_file} ubuntu@44.223.78.166:~/test/"
+    scp_command = f"scp -i ~/test/COMP4651.pem {result_file} ubuntu@44-213-147-149:~/test/"
     print(f"Sending results to master with command: {scp_command}")
     
     # Execute the SCP command
