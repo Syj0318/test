@@ -78,7 +78,7 @@ def send_results_to_master(result_file, master_ip, master_user):
         print(f"Error sending results to master instance: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 3:
         print("Usage: python3 worker.py {worker_id} {partition_file}")
         sys.exit(1)
 
