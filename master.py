@@ -68,6 +68,9 @@ if __name__ == "__main__":
     # Partition data for each worker
     partitions = partition_data(ticker_data, num_workers)
 
+    # List to hold worker processes
+    worker_processes = []
+
     # Start worker instances
     for worker_id in range(num_workers):
         # Save partition to a temporary file
@@ -79,6 +82,10 @@ if __name__ == "__main__":
         
         # Execute the SSH command
         subprocess.Popen(ssh_command, shell=True)
+        worker_processes.append(subprocess)
 
-    # Wait for workers to finish (you might implement a more robust wait mechanism)
-    print("Workers have been started. Check output files for results.")
+    # Wait for all worker processes to finish
+    for process in worker_processes:
+        process.wait()
+
+    print("All workers have completed. Check output files for results.")
