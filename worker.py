@@ -5,6 +5,7 @@ import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import sys
+import time  # Import time module for tracking training duration
 
 # Dataset class definition
 class TimeSeriesDataset:
@@ -48,12 +49,16 @@ def evaluate_model(model, X_test, y_test):
     return mse
 
 # Function to evaluate and save results locally
-def evaluate_and_save_results(model, X_test, y_test, worker_id):
+def evaluate_and_save_results(model, X_test, y_test, worker_id, training_time):
     mse = evaluate_model(model, X_test, y_test)
     print(f"Worker {worker_id} Evaluation -> MSE: {mse:.4f}")
 
-    # Save evaluation results to a local file
-    results = {'worker_id': worker_id, 'MSE': mse}
+    # Save evaluation results and training time to a local file
+    results = {
+        'worker_id': worker_id,
+        'MSE': mse,
+        'training_time_seconds': training_time
+    }
     with open(f'evaluation_results_worker_{worker_id}.json', 'w') as f:
         json.dump(results, f)
     print(f'Worker {worker_id} evaluation results saved locally as evaluation_results_worker_{worker_id}.json')
@@ -79,7 +84,15 @@ if __name__ == "__main__":
 
     # Create and train the model
     model = create_model((X_train.shape[1], X_train.shape[2]))
+
+    # Start timing the training process
+    start_time = time.time()
     model.fit(X_train, y_train, epochs=10, batch_size=32)
+    # End timing the training process
+    end_time = time.time()
+
+    # Calculate training time
+    training_time = end_time - start_time
 
     # Evaluate models after training
-    evaluate_and_save_results(model, X_test, y_test, worker_id)
+    evaluate_and_save_results(model, X_test, y_test, worker_id, training_time)
