@@ -5,7 +5,9 @@ import json
 
 # Install required packages using sys.executable
 subprocess.check_call([sys.executable, "-m", "pip", "install", "pymysql"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "torch torchvision torchaudio"])  # CPU 버전의 PyTorch 설치
+subprocess.check_call([sys.executable, "-m", "pip", "install", "torch"])  # CPU 버전의 PyTorch 설치
+subprocess.check_call([sys.executable, "-m", "pip", "install", "torchvision"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "torchaudio"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "numpy"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn"])
