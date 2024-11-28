@@ -97,7 +97,7 @@ if __name__ == "__main__":
             continue  # Skip starting the worker if the copy fails
 
         # Use SSH to start the worker process on the remote instance
-        ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} {partition_file}'"
+        ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} ~/test/{partition_file}'"
         print(f"Starting worker {worker_id} with command: {ssh_command}")
 
         # Start the worker process and store the process object
