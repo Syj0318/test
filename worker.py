@@ -78,7 +78,7 @@ def send_results_to_master(result_file, master_ip):
         # # Execute the SCP command
         # scp_process = subprocess.run(scp_command, shell=True)
 
-        scp_command = ["scp -i COMP4651.pem", result_file, f"ubuntu@{master_ip}:/path/to/destination/"]
+        scp_command = ["scp", "-i", "~/test/COMP4651.pem", result_file, f"ubuntu@{master_ip}:/path/to/destination/"]
         subprocess.run(scp_command, check=True)
         
             
