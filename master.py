@@ -78,7 +78,7 @@ if __name__ == "__main__":
         partitions[worker_id].to_json(partition_file, orient='records')
 
         # Use SSH to start the worker process on the remote instance
-        ssh_command = f"ssh -i hyunju.pem username@{worker_ips[worker_id]} 'python3 ~/test/worker.py'"
+        ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py'"
         
         # Execute the SSH command
         subprocess.Popen(ssh_command, shell=True)
