@@ -1,58 +1,19 @@
-import os
-import sys
-import subprocess
-import json
-
-# Install required packages using sys.executable
-subprocess.check_call([sys.executable, "-m", "pip", "install", "pymysql"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "torch"])  # CPU 버전의 PyTorch 설치
-subprocess.check_call([sys.executable, "-m", "pip", "install", "torchvision"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "torchaudio"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "numpy"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "boto3"])
-
 import pandas as pd
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+import pymysql
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-import pymysql
-import boto3
-import time
-
-s3 = boto3.client('s3',
-                  aws_access_key_id='YOUR_ACCESS_KEY',
-                  aws_secret_access_key='YOUR_SECRET_KEY',
-                  region_name='YOUR_REGION')
+import json
+import tensorflow as tf
 
 # Dataset class definition
-class TimeSeriesDataset(Dataset):
+class TimeSeriesDataset:
     def __init__(self, X, y):
         self.X = X
         self.y = y
 
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-
-# LSTM model definition
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1):
-        super(LSTMModel, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        out, _ = self.lstm(x)
-        out = self.fc(out[:, -1, :])  # Last time step output
-        return out
+    def get_data(self):
+        return self.X, self.y
 
 # Function to fetch data from the database
 def fetch_data(selected_ticker):
@@ -108,66 +69,33 @@ def preprocess_data(ticker_data):
         return np.array(X), np.array(y)
 
     X, y = create_sequences(normalized_data, sequence_length)
-    return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+    return np.array(X), np.array(y)
 
-# Function to save the model to S3
-def save_model_to_s3(model, bucket_name, model_name):
-    # Save the model locally
-    torch.save(model.state_dict(), model_name)
-
-    # Upload to S3
-    s3.upload_file(model_name, bucket_name, model_name)
-    print(f'Model {model_name} uploaded to S3 successfully.')
-
-# Function to train the model
-def train(X_train, y_train):
-    input_size = X_train.shape[2]
-    hidden_size = 32
-    output_size = 1
-    learning_rate = 0.01
-    batch_size = 32
-    epochs = 10
-
-    train_dataset = TimeSeriesDataset(X_train, y_train)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-    model = LSTMModel(input_size, hidden_size, output_size)
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    # Start measuring training time
-    start_time = time.time()
-
-    for epoch in range(epochs):
-        model.train()
-        running_loss = 0.0
-        for X_batch, y_batch in train_loader:
-            optimizer.zero_grad()
-            outputs = model(X_batch)
-            loss = criterion(outputs.squeeze(), y_batch)
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item()
-
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {running_loss/len(train_loader):.4f}")
-
-    # End measuring training time
-    end_time = time.time()
-    training_time = end_time - start_time
-    print(f"Training Time: {training_time:.2f} seconds")
-
-    # Save model to S3
-    save_model_to_s3(model, 'your-bucket-name', 'model.pth')
+# Function to create and compile the LSTM model
+def create_model(input_shape):
+    model = tf.keras.Sequential([
+        tf.keras.layers.LSTM(32, activation='relu', input_shape=input_shape),
+        tf.keras.layers.Dense(1)
+    ])
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    return model
 
 # Function to evaluate the model
 def evaluate_model(model, X_test, y_test):
-    model.eval()
-    with torch.no_grad():
-        predictions = model(X_test)
-        mse = nn.MSELoss()(predictions.squeeze(), y_test)
-        return mse.item()
+    mse = model.evaluate(X_test, y_test, verbose=0)
+    return mse
 
-# Main execution
+# Function to evaluate and save results locally
+def evaluate_and_save_results(model, X_test, y_test):
+    mse = evaluate_model(model, X_test, y_test)
+    print(f"Evaluation -> MSE: {mse:.4f}")
+
+    # Save evaluation results to a local file
+    results = {'MSE': mse}
+    with open('evaluation_results.json', 'w') as f:
+        json.dump(results, f)
+    print(f'Evaluation results saved locally as evaluation_results.json')
+
 if __name__ == "__main__":
     selected_ticker = "AAPL"  # Change to desired ticker symbol
     ticker_data = fetch_data(selected_ticker)
@@ -176,11 +104,13 @@ if __name__ == "__main__":
     X, y = preprocess_data(ticker_data)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train the model
-    train(X_train, y_train)
+    # Reshape data for LSTM
+    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], X_train.shape[2]))
+    X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], X_test.shape[2]))
 
-    # Evaluate the model
-    model = LSTMModel(X_train.shape[2], 32, 1)  # Load the model
-    model.load_state_dict(torch.load('model.pth'))  # Load model state
-    mse = evaluate_model(model, X_test, y_test)  # Evaluate
-    print(f"Evaluation MSE: {mse:.4f}")
+    # Create and train the model
+    model = create_model((X_train.shape[1], X_train.shape[2]))
+    model.fit(X_train, y_train, epochs=10, batch_size=32)
+
+    # Evaluate models after training
+    evaluate_and_save_results(model, X_test, y_test)
