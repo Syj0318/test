@@ -68,23 +68,19 @@ def evaluate_and_save_results(model, X_test, y_test, worker_id, training_time):
     return result_file  # Return the result file name for sending
 
 # Function to send results to the master instance
-def send_results_to_master(result_file, master_ip):
-    try:
-        # # Construct the scp command
-        # scp_command = f"scp -i COMP4651.pem {result_file} ubuntu@{master_ip}:~/test/"
-        
-        # print(f"Copying {result_file} to master with command: {scp_command}")
-        
-        # # Execute the SCP command
-        # scp_process = subprocess.run(scp_command, shell=True)
-
-        scp_command = ["scp", "-i", "~/test/COMP4651.pem", result_file, f"ubuntu@{master_ip}:/path/to/destination/"]
-        subprocess.run(scp_command, check=True)
-        
-            
+def send_results_to_master(result_file, master_ip, master_user, key_file):
+    # Construct the SCP command using an f-string
+    scp_command = f"scp -i {key_file} {result_file} {master_user}@{master_ip}:~/test/"
+    print(f"Copying {result_file} to master instance with command: {scp_command}")
+    
+    # Execute the SCP command
+    scp_process = subprocess.run(scp_command, shell=True, capture_output=True, text=True)
+    
+    # Check if the command was successful
+    if scp_process.returncode == 0:
         print(f"Results successfully sent to master instance at {master_ip}.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error sending results to master instance: {e}")
+    else:
+        print(f"Error sending results to master instance: {scp_process.stderr}")  # Print any error output
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -95,7 +91,7 @@ if __name__ == "__main__":
     partition_file = sys.argv[2]
     master_ip = "44.213.147.149"
     master_user = "ubuntu"
-
+    key_file = "~/test/COMP4651.pem"
     # Load partitioned data
     ticker_data = pd.read_json(partition_file)
 
@@ -123,4 +119,4 @@ if __name__ == "__main__":
     result_file = evaluate_and_save_results(model, X_test, y_test, worker_id, training_time)
 
     # Send results to the master instance
-    send_results_to_master(result_file, master_ip)
+    send_results_to_master(result_file, master_ip, master_user, key_file)
