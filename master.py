@@ -63,8 +63,8 @@ if __name__ == "__main__":
 
     # Worker instance IP addresses
     worker_ips = [
-        "44-223-93-71",
-        "44-203-232-126"
+        "44.223.93.71",
+        "44.203.232.126"
     ]
 
     # Partition data for each worker
