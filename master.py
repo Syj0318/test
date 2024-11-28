@@ -1,3 +1,5 @@
+#master.py
+
 import pandas as pd
 import pymysql
 import json
@@ -57,7 +59,7 @@ if __name__ == "__main__":
     ticker_data = fetch_data(selected_ticker)
 
     # Number of worker instances
-    num_workers = 2  # Set this according to your setup
+    num_workers = 2  # Set to 2 for this example
 
     # Worker instance IP addresses
     worker_ips = [
@@ -77,12 +79,19 @@ if __name__ == "__main__":
         partition_file = f'worker_data_{worker_id}.json'
         partitions[worker_id].to_json(partition_file, orient='records')
 
-        # Use SSH to start the worker process on the remote instance
-        ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py'"
+        # Check if the partition file was created
+        if os.path.exists(partition_file):
+            print(f"Partition file {partition_file} created successfully.")
+        else:
+            print(f"Error: Partition file {partition_file} not found.")
         
-        # Execute the SSH command
-        subprocess.Popen(ssh_command, shell=True)
-        worker_processes.append(subprocess)
+        # Use SSH to start the worker process on the remote instance
+        ssh_command = f"ssh -i hyunju.pem username@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} {partition_file}'"
+        print(f"Starting worker {worker_id} with command: {ssh_command}")
+
+        # Start the worker process and store the process object
+        process = subprocess.Popen(ssh_command, shell=True)
+        worker_processes.append(process)
 
     # Wait for all worker processes to finish
     for process in worker_processes:

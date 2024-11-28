@@ -43,6 +43,10 @@ def evaluate_model(model, X_test, y_test):
 
 if __name__ == "__main__":
     # Get the worker ID and partition file path from command line arguments
+    if len(sys.argv) != 3:
+        print("Usage: python worker.py <worker_id> <partition_file>")
+        sys.exit(1)
+
     worker_id = int(sys.argv[1])
     partition_file = sys.argv[2]
 
