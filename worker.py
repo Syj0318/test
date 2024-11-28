@@ -71,8 +71,14 @@ def evaluate_and_save_results(model, X_test, y_test, worker_id, training_time):
 def send_results_to_master(result_file, master_ip, master_user):
     try:
         # Construct the scp command
-        scp_command = ["scp", result_file, f"{master_user}@{master_ip}:~/test/"]
-        subprocess.run(scp_command, check=True)
+        scp_command = f"scp -i COMP4651.pem {result_file} ubuntu@{master_ip}:~/test/"
+        
+        print(f"Copying {result_file} to master with command: {scp_command}")
+        
+        # Execute the SCP command
+        scp_process = subprocess.run(scp_command, shell=True)
+        
+            
         print(f"Results successfully sent to master instance at {master_ip}.")
     except subprocess.CalledProcessError as e:
         print(f"Error sending results to master instance: {e}")
