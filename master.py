@@ -87,7 +87,7 @@ if __name__ == "__main__":
             continue  # Skip starting the worker if the file doesn't exist
         
         # Copy the partition file to the worker instance using SCP
-        scp_command = f"scp -i hyunju.pem {partition_file} ubuntu@{worker_ips[worker_id]}:~/test/"
+        scp_command = f"scp -i COMP4651.pem {partition_file} ubuntu@{worker_ips[worker_id]}:~/test/"
         print(f"Copying {partition_file} to worker {worker_id} with command: {scp_command}")
         
         # Execute the SCP command
@@ -97,7 +97,7 @@ if __name__ == "__main__":
             continue  # Skip starting the worker if the copy fails
 
         # Use SSH to start the worker process on the remote instance
-        ssh_command = f"ssh -i hyunju.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} ~/test/{partition_file}'"
+        ssh_command = f"ssh -i COMP4651.pem ubuntu@{worker_ips[worker_id]} 'python3 ~/test/worker.py {worker_id} ~/test/{partition_file}'"
         print(f"Starting worker {worker_id} with command: {ssh_command}")
 
         # Start the worker process and store the process object
